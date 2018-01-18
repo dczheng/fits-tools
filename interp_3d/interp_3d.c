@@ -31,11 +31,6 @@ void read_parameters( char *fn ) {
             endrun( 1 );
         }
 
-        if ( sizeof( long long ) != 8 ) {
-            printf( "Type `long long` is no 64 bit on this platform. Stopping. \n" );
-            endrun( 20171207 );
-        }
-
         nt = 0;
 
         strcpy( tag[nt], "FilePrefix" );
