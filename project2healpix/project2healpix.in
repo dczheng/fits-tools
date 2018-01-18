@@ -1,0 +1,8 @@
+flag 2 
+infile  ./sff_simulated_wim07_intrinsic_164.fits
+outfile ./sff_simulated_wim07_intrinsic_164_x4320y8640.fits
+nside  1024
+order RING
+coordsys G
+map_size1  4320
+map_size2  8640 
