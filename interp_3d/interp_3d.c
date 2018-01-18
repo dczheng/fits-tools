@@ -8,6 +8,7 @@ int StartIndex, EndIndex, NumIndex;
 long naxes[3];
 char FilePrefix[200], OutFile[200];
 float *img3d;
+int *Index;
 
 void endrun( int err ) {
     fprintf( stderr, "EXIT CODE: %i\n", err );
@@ -146,10 +147,11 @@ void test() {
     char buf[100];
     N = naxes[0] * naxes[1];
     printf( "test output...\n" );
-    start_i = naxes[0] / 2 - 500;
-    end_i = naxes[0] / 2 + 500;
-    start_j = naxes[1] / 2 - 500;
-    end_j = naxes[1] / 2 + 500;
+    start_i = naxes[0] / 2 - 5;
+    end_i = naxes[0] / 2 + 5;
+    start_j = naxes[1] / 2 - 5;
+    end_j = naxes[1] / 2 + 5;
+    /*
     for ( k=0; k<naxes[2]; k++ ){
         printf( "%i\n", k );
         sprintf( buf, "./dat/%i.dat", k );
@@ -161,6 +163,27 @@ void test() {
         }
         fclose( fd );
     }
+    */
+    fd = fopen( "111.txt", "w" );
+    for ( k=0; k<NumIndex; k++ ){
+        fprintf( fd, "%i ", Index[k] );
+        for ( j=start_j; j<end_j; j++ ){
+            for ( i=start_i; i<end_i; i++ )
+                fprintf( fd, "%lf ", img3d[ Index[k]*N + (j * naxes[0]) + i ] );
+        }
+        fprintf( fd, "\n" );
+    }
+    fclose( fd );
+    fd = fopen( "222.txt", "w" );
+    for ( k=0; k<naxes[2]; k++ ){
+        fprintf( fd, "%i ", k );
+        for ( j=start_j; j<end_j; j++ ){
+            for ( i=start_i; i<end_i; i++ )
+                fprintf( fd, "%lf ", img3d[ k*N + (j * naxes[0]) + i ] );
+        }
+        fprintf( fd, "\n" );
+    }
+    fclose( fd );
     printf( "test output... done.\n" );
 }
 
@@ -185,7 +208,7 @@ void output_fits( float *img, int k ) {
 
 void main( int argc, char **argv ) {
     char buf[200];
-    int i, ii, j, k, N, zN, *index;
+    int i, ii, j, k, N, zN;
     float dx;
     double *x, *y;
     gsl_spline *spline;
@@ -204,26 +227,27 @@ void main( int argc, char **argv ) {
     printf( "dx: %f\n", dx );
     img3d = malloc( sizeof( float ) * N * zN );
     //memset( img3d, 0, sizeof( float ) * N * zN );
-    index = malloc( sizeof(int) * NumIndex );
+    Index = malloc( sizeof(int) * NumIndex );
     x = malloc( sizeof( double) * NumIndex );
     y = malloc( sizeof( double) * NumIndex );
     for ( i=StartIndex; i<=EndIndex; i++ ) {
         ii = i - StartIndex;
         sprintf( buf, "%s%3d.fits", FilePrefix, i );
         printf( "read file %s\n", buf );
-        index[ii] = (int)(( ii ) / ( dx ));
-        x[ii] = index[ii];
-        printf( "3d x index: %d\n", index[ii] );
-        read_fits_data( buf, &img3d[index[ii]*N] );
-        //output_fits( &img3d[index[ii]*N], ii );
+        Index[ii] = (int)(( ii ) / ( dx ));
+        x[ii] = Index[ii];
+        printf( "3d x Index: %d\n", Index[ii] );
+        read_fits_data( buf, &img3d[Index[ii]*N] );
+        //output_fits( &img3d[Index[ii]*N], ii );
     }
     printf( "interpolate ...\n" );
-    spline = gsl_spline_alloc( gsl_interp_cspline, NumIndex );
+    //spline = gsl_spline_alloc( gsl_interp_cspline, NumIndex );
+    spline = gsl_spline_alloc( gsl_interp_linear, NumIndex );
     acc = gsl_interp_accel_alloc();
     for ( i=0; i<naxes[1]; i++ )
         for ( j=0; j<naxes[0]; j++ ) {
             for ( k=0; k<NumIndex; k++ ) {
-                y[k] = img3d[ index[k]*N + i*naxes[0] + j ];
+                y[k] = img3d[ Index[k]*N + i*naxes[0] + j ];
                 //printf( "%f\n", y[k] );
             }
             gsl_spline_init( spline, x, y, NumIndex );
@@ -232,9 +256,9 @@ void main( int argc, char **argv ) {
         }
     printf( "interpolate ... done.\n" );
     save_fits();
-    //test();
+    test();
     free( img3d );
-    free( index );
+    free( Index );
     free( x );
     free( y );
     gsl_interp_accel_free( acc );
