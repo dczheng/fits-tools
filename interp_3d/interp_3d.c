@@ -129,7 +129,7 @@ void save_fits() {
     fitsfile *fptr;
     int status;
     char buf[200];
-    printf( "save fits file to %s\n", OutFile );
+    printf( "save fits file to %s ...\n", OutFile );
     sprintf( buf, "!%s", OutFile );
     status = 0;
     fits_create_file( &fptr, buf, &status );
@@ -137,11 +137,55 @@ void save_fits() {
     fits_write_img( fptr, TFLOAT, 1, (LONGLONG)(naxes[0]*naxes[1]*naxes[2]), img3d, &status );
     fits_close_file( fptr, &status );
     fits_report_error( stderr, status );
+    printf( "save fits file to %s ... done.\n", OutFile );
+}
+
+void test() {
+    FILE *fd;
+    int i, j, k, N, start_i, end_i, start_j, end_j;
+    char buf[100];
+    N = naxes[0] * naxes[1];
+    printf( "test output...\n" );
+    start_i = naxes[0] / 2 - 500;
+    end_i = naxes[0] / 2 + 500;
+    start_j = naxes[1] / 2 - 500;
+    end_j = naxes[1] / 2 + 500;
+    for ( k=0; k<naxes[2]; k++ ){
+        printf( "%i\n", k );
+        sprintf( buf, "./dat/%i.dat", k );
+        fd = fopen( buf, "w" );
+        for ( j=start_j; j<end_j; j++ ){
+            for ( i=start_i; i<end_i; i++ )
+                fprintf( fd, "%f ", img3d[ k*N + j * naxes[0] + i ] );
+            fprintf( fd, "\n" );
+        }
+        fclose( fd );
+    }
+    printf( "test output... done.\n" );
+}
+
+void output_fits( float *img, int k ) {
+    int i, j, start_i, start_j, end_i, end_j, N;
+    char buf[100];
+    FILE *fd;
+    N = naxes[0] * naxes[1];
+    start_i = naxes[1] / 2 - 500;
+    end_i = naxes[1] / 2 + 500;
+    start_j = naxes[0] / 2 - 500;
+    end_j = naxes[0] / 2 + 500;
+    sprintf( buf, "./txt/%i.txt", k );
+    fd = fopen( buf, "w" );
+    for ( i=start_i; i<end_i; i++ ){
+        for ( j=start_j; j<end_j; j++ )
+            fprintf( fd, "%f ", img[i*naxes[0]+j] );
+        fprintf( fd, "\n" );
+    }
+    fclose( fd );
 }
 
 void main( int argc, char **argv ) {
     char buf[200];
-    int i, ii, j, k, N, zN, *index, flag;
+    int i, ii, j, k, N, zN, *index;
     float dx;
     double *x, *y;
     gsl_spline *spline;
@@ -171,6 +215,7 @@ void main( int argc, char **argv ) {
         x[ii] = index[ii];
         printf( "3d x index: %d\n", index[ii] );
         read_fits_data( buf, &img3d[index[ii]*N] );
+        //output_fits( &img3d[index[ii]*N], ii );
     }
     printf( "interpolate ...\n" );
     spline = gsl_spline_alloc( gsl_interp_cspline, NumIndex );
@@ -179,6 +224,7 @@ void main( int argc, char **argv ) {
         for ( j=0; j<naxes[0]; j++ ) {
             for ( k=0; k<NumIndex; k++ ) {
                 y[k] = img3d[ index[k]*N + i*naxes[0] + j ];
+                //printf( "%f\n", y[k] );
             }
             gsl_spline_init( spline, x, y, NumIndex );
             for ( k=0; k<naxes[2]; k++ )
@@ -186,11 +232,12 @@ void main( int argc, char **argv ) {
         }
     printf( "interpolate ... done.\n" );
     save_fits();
+    //test();
     free( img3d );
     free( index );
     free( x );
     free( y );
-    gsl_spline_free( spline );
     gsl_interp_accel_free( acc );
+    gsl_spline_free( spline );
 }
 
